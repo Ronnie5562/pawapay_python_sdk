@@ -1,5 +1,7 @@
 # PawaPay Python SDK
 
+<img width="1536" height="1051" alt="Image" src="https://github.com/user-attachments/assets/67c81cf0-9898-4fb2-9135-30d1e4e5f90b" />
+
 A comprehensive Python SDK for integrating with the PawaPay mobile money payment platform across Africa.
 
 ## Features
