@@ -299,3 +299,5 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Webhook handling
 - Comprehensive validation
 - Full type hints and documentation
+
+**NOTE:** This SDK is unofficial and not affiliated with or endorsed by PawaPay. Built for developers integrating with PawaPay’s public APIs.
