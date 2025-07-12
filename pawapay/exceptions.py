@@ -1,8 +1,10 @@
 from typing import Optional, Dict, Any
 
+
 class PawaPayException(Exception):
     """Base exception for PawaPay SDK"""
     pass
+
 
 class PawaPayAPIException(PawaPayException):
     """Exception for API-specific errors"""
@@ -27,17 +29,21 @@ class PawaPayAPIException(PawaPayException):
             parts.append(f"Error Code: {self.error_code}")
         return " | ".join(parts)
 
+
 class PawaPayValidationException(PawaPayException):
     """Exception for validation errors"""
     pass
+
 
 class PawaPayConfigurationException(PawaPayException):
     """Exception for configuration errors"""
     pass
 
+
 class PawaPayTimeoutException(PawaPayException):
     """Exception for timeout errors"""
     pass
+
 
 class PawaPayNetworkException(PawaPayException):
     """Exception for network-related errors"""
