@@ -9,7 +9,8 @@ from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 from typing import Optional, Dict, Any, List
 
-from .models import (
+
+from models import (
     DepositRequest,
     PayoutRequest,
     DepositResponse,
@@ -20,8 +21,9 @@ from .models import (
     Payer,
     Recipient
 )
-from .config import PawaPayConfig
-from .exceptions import PawaPayException, PawaPayAPIException
+from config import PawaPayConfig
+from exceptions import PawaPayException, PawaPayAPIException
+
 
 class PawaPayClient:
     """PawaPay API client for mobile money payments"""
@@ -95,22 +97,44 @@ class PawaPayClient:
 
     def get_active_configuration(self) -> Dict[str, Any]:
         """Get active configuration including available correspondents"""
-        return self._make_request('GET', '/v1/active-configuration')
+        return self._make_request('GET', '/active-conf')
 
     def get_correspondents(self) -> List[Correspondent]:
-        """Get list of available correspondents (MMOs)"""
+        """Get list of available correspondents (MMOs) from all countries"""
         config = self.get_active_configuration()
         correspondents = []
 
-        for correspondent_data in config.get('correspondents', []):
-            correspondents.append(Correspondent.from_dict(correspondent_data))
+        # Correspondents are grouped by country in the response
+        for country_data in config.get('countries', []):
+            for correspondent_data in country_data.get('correspondents', []):
+                # Add country info to correspondent data if needed
+                correspondent_data['country'] = country_data['country']
+                correspondents.append(Correspondent.from_dict(correspondent_data))
+
+        return correspondents
+
+    def get_correspondents_by_country(self, country_code: str) -> List[Correspondent]:
+        """Get correspondents for a specific country"""
+        config = self.get_active_configuration()
+        correspondents = []
+
+        for country_data in config.get('countries', []):
+            if country_data['country'] == country_code:
+                for correspondent_data in country_data.get('correspondents', []):
+                    correspondent_data['country'] = country_code
+                    correspondents.append(Correspondent.from_dict(correspondent_data))
+                break
 
         return correspondents
 
     def predict_correspondent(self, msisdn: str) -> Optional[str]:
         """Predict correspondent for a given phone number"""
         try:
-            response = self._make_request('GET', f'/v1/predict-correspondent/{msisdn}')
+            response = self._make_request(
+                'POST',
+                '/v1/predict-correspondent',
+                data={"msisdn": msisdn}
+            )
             return response.get('correspondent')
         except PawaPayAPIException:
             return None
@@ -137,23 +161,48 @@ class PawaPayClient:
             amount=amount,
             currency=currency,
             correspondent=correspondent,
-            payer=Payer(type="MSISDN", value=phone_number),
+            payer=Payer(
+                type="MSISDN",
+                address={"value": phone_number}
+            ),
             customer_timestamp=datetime.utcnow().isoformat() + "Z",
             statement_description=statement_description
         )
 
-        response_data = self._make_request('POST', '/v1/deposits', deposit_request.to_dict())
+        response_data = self._make_request(
+            'POST',
+            '/deposits',
+            deposit_request.to_dict()
+        )
+
+        if response_data.get('status') == 'REJECTED':
+            rejection_reason = response_data.get('rejectionReason', {})
+            raise ValueError(
+                f"Deposit was rejected."
+                f"Code: {rejection_reason.get('rejectionCode')}, "
+                f"Message: {rejection_reason.get('rejectionMessage')}"
+            )
+
+        response_data["amount"] = amount
+        response_data["currency"] = currency
+        response_data["correspondent"] = correspondent
+        response_data["payer"] = Payer(
+            type="MSISDN",
+            address={"value": phone_number}
+        ).to_dict()
+
         return DepositResponse.from_dict(response_data)
 
     def check_deposit_status(self, deposit_id: str) -> DepositResponse:
         """Check status of a deposit"""
-        response_data = self._make_request('GET', f'/v1/deposits/{deposit_id}')
-        return DepositResponse.from_dict(response_data)
+        response_data = self._make_request('GET', f'/deposits/{deposit_id}')
+        return DepositResponse.from_dict(response_data[0])
 
     def request_payout(
         self,
         amount: str,
         currency: str,
+        country: str,
         phone_number: str,
         correspondent: Optional[str] = None,
         statement_description: Optional[str] = None
@@ -170,6 +219,7 @@ class PawaPayClient:
         payout_request = PayoutRequest(
             payout_id=self._generate_request_id(),
             amount=amount,
+            country=country,
             currency=currency,
             correspondent=correspondent,
             recipient=Recipient(type="MSISDN", value=phone_number),
@@ -177,13 +227,30 @@ class PawaPayClient:
             statement_description=statement_description
         )
 
-        response_data = self._make_request('POST', '/v1/payouts', payout_request.to_dict())
+        response_data = self._make_request('POST', '/payouts', payout_request.to_dict())
+
+        if response_data.get('status') == 'REJECTED':
+            rejection_reason = response_data.get('rejectionReason', {})
+            raise ValueError(
+                f"Payout was rejected."
+                f"Code: {rejection_reason.get('rejectionCode')}, "
+                f"Message: {rejection_reason.get('rejectionMessage')}"
+            )
+
+        response_data["amount"] = amount
+        response_data["currency"] = currency
+        response_data["correspondent"] = correspondent
+        response_data["recipient"] = Recipient(
+            type="MSISDN",
+            value=phone_number
+        ).to_dict()
+
         return PayoutResponse.from_dict(response_data)
 
     def check_payout_status(self, payout_id: str) -> PayoutResponse:
         """Check status of a payout"""
-        response_data = self._make_request('GET', f'/v1/payouts/{payout_id}')
-        return PayoutResponse.from_dict(response_data)
+        response_data = self._make_request('GET', f'/payouts/{payout_id}')
+        return PayoutResponse.from_dict(response_data[0])
 
     def refund_deposit(self, deposit_id: str) -> Dict[str, Any]:
         """Refund a completed deposit"""
@@ -233,3 +300,10 @@ class PawaPayClient:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.session.close()
+
+
+# Convenience function to create client from environment
+def create_client() -> PawaPayClient:
+    """Create PawaPay client from environment variables"""
+    config = PawaPayConfig.from_env()
+    return PawaPayClient(config)
