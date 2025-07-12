@@ -5,10 +5,13 @@ Example usage of PawaPay Python SDK
 import os
 import time
 from datetime import datetime
-from .models import TransactionStatus
-from .utils import PawaPayValidator, PawaPayHelper
-from . import PawaPayClient, PawaPayConfig, create_client
-from .exceptions import PawaPayException, PawaPayAPIException
+from models import TransactionStatus
+from utils import PawaPayValidator, PawaPayHelper
+from exceptions import PawaPayException, PawaPayAPIException
+from client import PawaPayClient, PawaPayConfig, create_client
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def main():
@@ -25,7 +28,7 @@ def main():
         # Method 2: Create client with manual configuration
         config = PawaPayConfig(
             api_token="your_api_token_here",
-            base_url="https://api.sandbox.pawapay.co.uk",
+            base_url="https://api.sandbox.pawapay.io",
             environment="sandbox",
             callback_url="https://your-app.com/webhooks/pawapay",
             timeout=30
@@ -56,7 +59,7 @@ def main():
     print("\n=== Requesting Deposit ===")
     try:
         # Validate inputs first
-        amount = "100.00"
+        amount = "100"
         currency = "KES"
         phone_number = "254700000001"  # Kenya test number for success
 
@@ -102,8 +105,9 @@ def main():
     try:
         payout_response = client.request_payout(
             amount="50.00",
+            country="KEN",
             currency="KES",
-            phone_number="254700000001",  # Kenya test number
+            phone_number="254700000001",
             statement_description="Test payout"
         )
 
