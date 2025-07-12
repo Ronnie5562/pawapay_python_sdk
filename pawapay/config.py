@@ -1,6 +1,9 @@
 import os
 from typing import Optional
 from dataclasses import dataclass
+from dotenv import load_dotenv
+
+load_dotenv()
 
 @dataclass
 class PawaPayConfig:
@@ -31,8 +34,8 @@ class PawaPayConfig:
 
         # Base URLs
         base_urls = {
-            'sandbox': 'https://api.sandbox.pawapay.co.uk',
-            'production': 'https://api.pawapay.co.uk'
+            'sandbox': 'https://api.sandbox.pawapay.io',
+            'production': 'https://api.pawapay.io'
         }
 
         return cls(
@@ -41,7 +44,9 @@ class PawaPayConfig:
             environment=environment,
             callback_url=os.getenv('PAWAPAY_CALLBACK_URL'),
             callback_secret=os.getenv('PAWAPAY_CALLBACK_SECRET'),
-            enable_signed_requests=os.getenv('PAWAPAY_ENABLE_SIGNED_REQUESTS', 'false').lower() == 'true',
+            enable_signed_requests=os.getenv(
+                'PAWAPAY_ENABLE_SIGNED_REQUESTS', 'false'
+            ).lower() == 'true',
             private_key_path=os.getenv('PAWAPAY_PRIVATE_KEY_PATH'),
             public_key_path=os.getenv('PAWAPAY_PUBLIC_KEY_PATH'),
             timeout=int(os.getenv('PAWAPAY_TIMEOUT', '30')),
@@ -54,7 +59,8 @@ class PawaPayConfig:
             raise ValueError("API token is required")
 
         if self.enable_signed_requests and not self.private_key_path:
-            raise ValueError("Private key path is required when signed requests are enabled")
+            raise ValueError(
+                "Private key path is required when signed requests are enabled")
 
         if self.environment not in ['sandbox', 'production']:
             raise ValueError("Environment must be 'sandbox' or 'production'")
