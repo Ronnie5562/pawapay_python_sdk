@@ -1,16 +1,32 @@
+from enum import Enum
+from datetime import datetime
 from dataclasses import dataclass
 from typing import Optional, Dict, Any, List
-from datetime import datetime
-from enum import Enum
+
 
 class TransactionStatus(Enum):
     """Transaction status enumeration"""
+    # The transaction request has been accepted by pawaPay for processing
     ACCEPTED = "ACCEPTED"
+
+    # The transaction request has been accepted but enqueued for processing later (typically when MMO is experiencing issues)
+    ENQUEUED = "ENQUEUED"
+
+    # The transaction has been successful (final state)
     COMPLETED = "COMPLETED"
+
+    # The transaction request has been submitted to the MMO and is being processed
+    SUBMITTED = "SUBMITTED"
+
+    # The transaction has failed (final state)
     FAILED = "FAILED"
-    CANCELLED = "CANCELLED"
+
+    # The transaction request has been rejected
     REJECTED = "REJECTED"
-    PENDING = "PENDING"
+
+    # The transaction request has been ignored as a duplicate of an already accepted transaction
+    DUPLICATE_IGNORED = "DUPLICATE_IGNORED"
+
 
 class Currency(Enum):
     """Supported currencies"""
@@ -23,18 +39,21 @@ class Currency(Enum):
     XAF = "XAF"  # Central African CFA Franc
     ZMW = "ZMW"  # Zambian Kwacha
     MWK = "MWK"  # Malawian Kwacha
+    NGN = "NGN"  # Nigerian Naira
+
 
 @dataclass
 class Payer:
     """Payer information for deposits"""
     type: str  # "MSISDN"
-    value: str  # Phone number
+    address: Dict[str, str]  # Address object with value (which is phone number/msisdn)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "type": self.type,
-            "value": self.value
+            "address": self.address
         }
+
 
 @dataclass
 class Recipient:
@@ -45,8 +64,11 @@ class Recipient:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "type": self.type,
-            "value": self.value
+            "address": {
+                "value": self.value
+            }
         }
+
 
 @dataclass
 class DepositRequest:
@@ -72,11 +94,13 @@ class DepositRequest:
             data["statementDescription"] = self.statement_description
         return data
 
+
 @dataclass
 class PayoutRequest:
     """Payout request model"""
     payout_id: str
     amount: str
+    country: str
     currency: str
     correspondent: str
     recipient: Recipient
@@ -87,6 +111,7 @@ class PayoutRequest:
         data = {
             "payoutId": self.payout_id,
             "amount": self.amount,
+            "country": self.country,
             "currency": self.currency,
             "correspondent": self.correspondent,
             "recipient": self.recipient.to_dict(),
@@ -95,6 +120,7 @@ class PayoutRequest:
         if self.statement_description:
             data["statementDescription"] = self.statement_description
         return data
+
 
 @dataclass
 class TransactionResponse:
@@ -112,18 +138,19 @@ class TransactionResponse:
         return cls(
             transaction_id=data.get("depositId") or data.get("payoutId"),
             status=TransactionStatus(data["status"]),
-            amount=data["amount"],
+            amount=data.get("amount", data.get("depositedAmount")),
             currency=data["currency"],
             correspondent=data["correspondent"],
             created=datetime.fromisoformat(data["created"].replace('Z', '+00:00')),
-            failure_reason=data.get("failureReason")
+            failure_reason=data.get("failureReason", None)
         )
+
 
 @dataclass
 class DepositResponse(TransactionResponse):
     """Deposit response model"""
-    deposit_id: str
-    payer: Dict[str, Any]
+    deposit_id: str = ""
+    payer: Dict[str, Any] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'DepositResponse':
@@ -137,14 +164,15 @@ class DepositResponse(TransactionResponse):
             created=base.created,
             failure_reason=base.failure_reason,
             deposit_id=data["depositId"],
-            payer=data["payer"]
+            payer=data.get("payer", {})
         )
+
 
 @dataclass
 class PayoutResponse(TransactionResponse):
     """Payout response model"""
-    payout_id: str
-    recipient: Dict[str, Any]
+    payout_id: str = ""
+    recipient: Dict[str, Any] = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'PayoutResponse':
@@ -158,8 +186,9 @@ class PayoutResponse(TransactionResponse):
             created=base.created,
             failure_reason=base.failure_reason,
             payout_id=data["payoutId"],
-            recipient=data["recipient"]
+            recipient=data.get("recipient", {})
         )
+
 
 @dataclass
 class Correspondent:
@@ -175,6 +204,7 @@ class Correspondent:
             country=data["country"],
             currency=data["currency"]
         )
+
 
 @dataclass
 class PawaPayError:
