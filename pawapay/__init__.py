@@ -27,7 +27,10 @@ from .exceptions import (
     PawaPayNetworkException
 )
 from .utils import PawaPayValidator, PawaPayHelper
+from .client import create_client
+from dotenv import load_dotenv
 
+load_dotenv()
 
 __version__ = "1.0.0"
 __author__ = "Abimbola Ronald"
@@ -62,9 +65,3 @@ __all__ = [
     'PawaPayValidator',
     'PawaPayHelper',
 ]
-
-# Convenience function to create client from environment
-def create_client() -> PawaPayClient:
-    """Create PawaPay client from environment variables"""
-    config = PawaPayConfig.from_env()
-    return PawaPayClient(config)
