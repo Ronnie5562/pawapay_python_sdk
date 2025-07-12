@@ -80,7 +80,7 @@ from pawapay.utils import PawaPayValidator, PawaPayHelper
 # Manual configuration
 config = PawaPayConfig(
     api_token="your_token",
-    base_url="https://api.sandbox.pawapay.co.uk",
+    base_url="https://api.sandbox.pawapay.io",
     environment="sandbox",
     callback_url="https://your-app.com/webhooks/pawapay",
     timeout=30
@@ -112,23 +112,28 @@ with PawaPayClient(config) as client:
 ### Client Methods
 
 #### Deposits
+
 - `request_deposit(amount, currency, phone_number, correspondent=None, statement_description=None)`
 - `check_deposit_status(deposit_id)`
 - `refund_deposit(deposit_id)`
 
 #### Payouts
+
 - `request_payout(amount, currency, phone_number, correspondent=None, statement_description=None)`
 - `check_payout_status(payout_id)`
 
 #### Configuration
+
 - `get_active_configuration()`
 - `get_correspondents()`
 - `predict_correspondent(msisdn)`
 
 #### Payment Pages
+
 - `create_payment_page_deposit(amount, currency, return_url, statement_description=None)`
 
 #### Utilities
+
 - `validate_callback(payload, signature)`
 - `resend_callback(transaction_id, transaction_type)`
 
@@ -250,15 +255,15 @@ pytest --cov=pawapay
 
 All configuration options can be set via environment variables or passed directly:
 
-| Option | Environment Variable | Default | Description |
-|--------|---------------------|---------|-------------|
-| `api_token` | `PAWAPAY_API_TOKEN` | - | Your PawaPay API token |
-| `environment` | `PAWAPAY_ENVIRONMENT` | `sandbox` | Environment (sandbox/production) |
-| `callback_url` | `PAWAPAY_CALLBACK_URL` | - | Webhook callback URL |
-| `callback_secret` | `PAWAPAY_CALLBACK_SECRET` | - | Webhook signature secret |
-| `enable_signed_requests` | `PAWAPAY_ENABLE_SIGNED_REQUESTS` | `false` | Enable request signing |
-| `timeout` | `PAWAPAY_TIMEOUT` | `30` | Request timeout in seconds |
-| `max_retries` | `PAWAPAY_MAX_RETRIES` | `3` | Maximum retry attempts |
+| Option                   | Environment Variable             | Default   | Description                      |
+| ------------------------ | -------------------------------- | --------- | -------------------------------- |
+| `api_token`              | `PAWAPAY_API_TOKEN`              | -         | Your PawaPay API token           |
+| `environment`            | `PAWAPAY_ENVIRONMENT`            | `sandbox` | Environment (sandbox/production) |
+| `callback_url`           | `PAWAPAY_CALLBACK_URL`           | -         | Webhook callback URL             |
+| `callback_secret`        | `PAWAPAY_CALLBACK_SECRET`        | -         | Webhook signature secret         |
+| `enable_signed_requests` | `PAWAPAY_ENABLE_SIGNED_REQUESTS` | `false`   | Enable request signing           |
+| `timeout`                | `PAWAPAY_TIMEOUT`                | `30`      | Request timeout in seconds       |
+| `max_retries`            | `PAWAPAY_MAX_RETRIES`            | `3`       | Maximum retry attempts           |
 
 ## Project Structure
 
@@ -288,12 +293,13 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Support
 
 - 📧 Email: abimbolaronald@gmail.com
-- 📖 Documentation: https://docs.pawapay.co.uk
+- 📖 Documentation: https://docs.pawapay.io
 - 🐛 Issues: https://github.com/Ronnie5562/pawapay_python_sdk/issues
 
 ## Changelog
 
 ### v1.0.0
+
 - Initial release
 - Support for deposits and payouts
 - Webhook handling
